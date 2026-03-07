@@ -47,7 +47,7 @@ exports.getTree = async (req, res) => {
 // ==================== إضافة فرد من الذرية ====================
 exports.addDescendant = async (req, res) => {
   try {
-    const { fullName, gender, phoneNumber, dateOfBirth, currentCity, job } = req.body;
+    const { fullName, gender, phoneNumber, dateOfBirth, currentCity, job, hideFromTree } = req.body;
 
     if (!fullName || !gender) {
       return res.status(400).json({ success: false, message: 'الاسم والجنس مطلوبان' });
@@ -77,6 +77,7 @@ exports.addDescendant = async (req, res) => {
     if (dateOfBirth) newMember.dateOfBirth = new Date(dateOfBirth);
     if (currentCity) newMember.currentCity = currentCity.trim();
     if (job) newMember.job = job.trim();
+    if (hideFromTree) newMember.privacy = { ...newMember.privacy, hideFromTree: true };
 
     await newMember.save();
 
