@@ -1,21 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { getMyDescendants,
+const {
   getTree, addDescendant, searchMembers, getMember, getStats,
-  updatePrivacy,
-  updateFcmToken,
+  updatePrivacy, updateFcmToken, getMyDescendants,
 } = require('../controllers/memberController');
-const { getMyDescendants, protect, activeOnly } = require('../middleware/auth');
+const { protect, activeOnly } = require('../middleware/auth');
 
 router.use(protect);
 
 router.get('/tree', activeOnly, getTree);
 router.get('/search', activeOnly, searchMembers);
 router.get('/stats', activeOnly, getStats);
+router.get('/my-descendants', activeOnly, getMyDescendants);
 router.get('/:id', activeOnly, getMember);
 router.post('/add-descendant', activeOnly, addDescendant);
 router.put('/privacy', activeOnly, updatePrivacy);
 router.put('/fcm-token', updateFcmToken);
 
 module.exports = router;
-router.get('/my-descendants', protect, getMyDescendants);
