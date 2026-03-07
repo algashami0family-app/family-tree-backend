@@ -1,3 +1,4 @@
+const { sendNewsNotification } = require('../utils/notifications');
 const Member = require('../models/Member');
 const News = require('../models/News');
 const Notification = require('../models/Notification');
@@ -179,6 +180,7 @@ exports.createNews = async (req, res) => {
       isPinned: isPinned || false,
     });
 
+    sendNewsNotification('خبر جديد 📢', title, news._id).catch(() => {});
     res.status(201).json({ success: true, message: 'تم نشر الخبر', news });
   } catch (error) {
     res.status(500).json({ success: false, message: 'خطأ في نشر الخبر' });

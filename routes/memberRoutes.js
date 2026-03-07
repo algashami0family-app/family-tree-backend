@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getTree, addDescendant, searchMembers, getMember, getStats,
   updatePrivacy,
+  updateFcmToken,
 } = require('../controllers/memberController');
 const { protect, activeOnly } = require('../middleware/auth');
 
@@ -14,5 +15,6 @@ router.get('/stats', activeOnly, getStats);
 router.get('/:id', activeOnly, getMember);
 router.post('/add-descendant', activeOnly, addDescendant);
 router.put('/privacy', activeOnly, updatePrivacy);
+router.put('/fcm-token', updateFcmToken);
 
 module.exports = router;

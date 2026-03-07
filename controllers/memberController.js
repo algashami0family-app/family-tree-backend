@@ -239,3 +239,14 @@ exports.updatePrivacy = async (req, res) => {
     res.status(500).json({ success: false, message: 'خطأ في الخادم' });
   }
 };
+
+// ==================== FCM Token ====================
+exports.updateFcmToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    await Member.findByIdAndUpdate(req.member._id, { fcmToken });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};

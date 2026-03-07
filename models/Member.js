@@ -9,6 +9,8 @@ const memberSchema = new mongoose.Schema({
     // يُولَّد تلقائياً
   },
 
+  fcmToken: { type: String, default: null },
+
   // ==================== الخصوصية ====================
   privacy: {
     hidePhone: { type: Boolean, default: false },
