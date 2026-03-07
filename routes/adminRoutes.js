@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   getJoinRequests, approveRequest, rejectRequest,
   getStatistics, getAllMembers, updateMemberRole,
-  createNews, initAdmin,
+  createNews, initAdmin, getMembers, deleteMember,
 } = require('../controllers/adminController');
 const { protect, adminOnly } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -23,3 +23,5 @@ router.put('/members/:id/role', updateMemberRole);
 router.post('/news', createNews);
 
 module.exports = router;
+router.get('/members', getMembers);
+router.delete('/members/:id', deleteMember);

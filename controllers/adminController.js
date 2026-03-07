@@ -215,3 +215,35 @@ exports.initAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: 'خطأ في إنشاء الأدمن' });
   }
 };
+
+// ==================== قائمة الأعضاء ====================
+exports.getMembers = async (req, res) => {
+  try {
+    const Member = require('../models/Member');
+    const members = await Member.find()
+      .select('fullName memberId phoneNumber gender accountStatus role generation privacy createdAt')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, members });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'خطأ في جلب الأعضاء' });
+  }
+};
+
+// ==================== حذف عضو ====================
+exports.deleteMember = async (req, res) => {
+  try {
+    const Member = require('../models/Member');
+    const { id } = req.params;
+    const member = await Member.findById(id);
+    if (!member) return res.status(404).json({ success: false, message: 'العضو غير موجود' });
+    if (member.role === 'super_admin') return res.status(403).json({ success: false, message: 'لا يمكن حذف المشرف الرئيسي' });
+    // إزالة من قائمة أبناء الأب
+    if (member.fatherId) {
+      await Member.findByIdAndUpdate(member.fatherId, { $pull: { children: member._id } });
+    }
+    await Member.findByIdAndDelete(id);
+    res.json({ success: true, message: 'تم حذف العضو بنجاح' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'خطأ في حذف العضو' });
+  }
+};
