@@ -188,6 +188,7 @@ exports.getMember = async (req, res) => {
       if (member.privacy?.hidePhone) delete memberObj.phoneNumber;
       if (member.privacy?.hideJob) delete memberObj.job;
       if (member.privacy?.hideCity) delete memberObj.currentCity;
+      if (member.privacy?.hideBirthDate) { delete memberObj.dateOfBirth; delete memberObj.placeOfBirth; }
       return res.json({ success: true, member: memberObj });
     }
 
@@ -227,10 +228,10 @@ exports.getStats = async (req, res) => {
 // ==================== تحديث الخصوصية ====================
 exports.updatePrivacy = async (req, res) => {
   try {
-    const { hidePhone, hideJob, hideCity, hideFromTree } = req.body;
+    const { hidePhone, hideJob, hideCity, hideFromTree, hideBirthDate } = req.body;
     const member = await Member.findByIdAndUpdate(
       req.member._id,
-      { privacy: { hidePhone: !!hidePhone, hideJob: !!hideJob, hideCity: !!hideCity, hideFromTree: !!hideFromTree } },
+      { privacy: { hidePhone: !!hidePhone, hideJob: !!hideJob, hideCity: !!hideCity, hideFromTree: !!hideFromTree, hideBirthDate: !!hideBirthDate } },
       { new: true }
     ).select('-otp');
     res.json({ success: true, message: 'تم تحديث إعدادات الخصوصية', member });

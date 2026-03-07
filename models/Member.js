@@ -15,6 +15,7 @@ const memberSchema = new mongoose.Schema({
     hideJob: { type: Boolean, default: false },
     hideCity: { type: Boolean, default: false },
     hideFromTree: { type: Boolean, default: false },
+    hideBirthDate: { type: Boolean, default: false },
   },
 
   // ==================== بيانات الاتصال ====================
