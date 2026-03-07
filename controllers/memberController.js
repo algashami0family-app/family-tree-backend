@@ -78,6 +78,7 @@ exports.addDescendant = async (req, res) => {
     if (currentCity) newMember.currentCity = currentCity.trim();
     if (job) newMember.job = job.trim();
     if (hideFromTree) newMember.privacy = { ...newMember.privacy, hideFromTree: true };
+    if (hideFromTree) newMember.privacy = { ...newMember.privacy, hideFromTree: true };
 
     await newMember.save();
 
