@@ -252,3 +252,18 @@ exports.updateFcmToken = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
+// ==================== ذرية العضو الحالي ====================
+exports.getMyDescendants = async (req, res) => {
+  try {
+    const member = req.member;
+    // نجيب كل الأعضاء اللي lineage يحتوي على id العضو الحالي
+    const descendants = await Member.find({
+      lineage: member._id,
+      accountStatus: { $ne: 'rejected' },
+    }).select('fullName memberId gender generation currentCity job phoneNumber privacy accountStatus');
+    res.json({ success: true, members: descendants });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'خطأ في جلب الذرية' });
+  }
+};

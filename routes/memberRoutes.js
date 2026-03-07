@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const {
+const { getMyDescendants,
   getTree, addDescendant, searchMembers, getMember, getStats,
   updatePrivacy,
   updateFcmToken,
 } = require('../controllers/memberController');
-const { protect, activeOnly } = require('../middleware/auth');
+const { getMyDescendants, protect, activeOnly } = require('../middleware/auth');
 
 router.use(protect);
 
@@ -18,3 +18,4 @@ router.put('/privacy', activeOnly, updatePrivacy);
 router.put('/fcm-token', updateFcmToken);
 
 module.exports = router;
+router.get('/my-descendants', protect, getMyDescendants);
