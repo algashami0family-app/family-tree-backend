@@ -106,3 +106,47 @@ exports.addNewSpouse = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// إضافة زوجة جديدة مع إنشاء حساب تلقائي
+exports.addNewSpouse = async (req, res) => {
+  try {
+    const { spouseName, spousePhone, weddingDate, notes } = req.body;
+    if (!spouseName) return res.status(400).json({ success: false, message: 'اسم الزوجة مطلوب' });
+
+    const member1 = req.member;
+
+    // إنشاء حساب للزوجة
+    const newSpouse = new Member({
+      fullName: spouseName.trim(),
+      gender: 'female',
+      phoneNumber: spousePhone || `SPOUSE-${Date.now()}`,
+      generation: member1.generation,
+      accountStatus: 'active',
+      registrationMethod: 'added_by_spouse',
+      canAddDescendants: false,
+      privacy: {
+        hideFromTree: true,
+        hidePhone: true,
+      },
+    });
+
+    await newSpouse.save();
+
+    // إنشاء علاقة الزواج
+    const [id1, id2] = [member1._id.toString(), newSpouse._id.toString()].sort();
+    await Spouse.create({
+      member1Id: id1,
+      member2Id: id2,
+      weddingDate: weddingDate || undefined,
+      notes: notes || undefined,
+    });
+
+    res.json({
+      success: true,
+      message: 'تم إنشاء حساب الزوجة بنجاح',
+      memberId: newSpouse.memberId,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
