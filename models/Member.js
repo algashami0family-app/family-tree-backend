@@ -118,7 +118,7 @@ const memberSchema = new mongoose.Schema({
   },
   registrationMethod: {
     type: String,
-    enum: ['self_registered', 'added_by_admin', 'added_by_father'],
+    enum: ['self_registered', 'added_by_admin', 'added_by_father', 'added_by_spouse'],
     default: 'self_registered',
   },
 
