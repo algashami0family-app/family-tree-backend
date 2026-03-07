@@ -14,6 +14,8 @@ const familyTreeRoutes = require('./routes/familyTreeRoutes');
 const treePdfRoutes = require('./routes/treePdf');
 
 const app = express();
+app.set('trust proxy', 1);
+app.set('trust proxy', 1);
 
 // ==================== Middleware ====================
 app.use(helmet());

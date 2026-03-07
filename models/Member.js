@@ -9,6 +9,14 @@ const memberSchema = new mongoose.Schema({
     // يُولَّد تلقائياً
   },
 
+  // ==================== الخصوصية ====================
+  privacy: {
+    hidePhone: { type: Boolean, default: false },
+    hideJob: { type: Boolean, default: false },
+    hideCity: { type: Boolean, default: false },
+    hideFromTree: { type: Boolean, default: false },
+  },
+
   // ==================== بيانات الاتصال ====================
   phoneNumber: {
     type: String,

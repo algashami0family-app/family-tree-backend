@@ -51,6 +51,7 @@ exports.sendOTP = async (req, res) => {
       success: true,
       message: 'تم إرسال رمز التحقق',
       dev: result.dev || false,
+      otp: result.otp || undefined,
     });
   } catch (error) {
     console.error('sendOTP error:', error);

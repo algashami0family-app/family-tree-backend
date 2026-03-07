@@ -211,3 +211,18 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ success: false, message: 'خطأ في الإحصائيات' });
   }
 };
+
+// ==================== تحديث الخصوصية ====================
+exports.updatePrivacy = async (req, res) => {
+  try {
+    const { hidePhone, hideJob, hideCity, hideFromTree } = req.body;
+    const member = await Member.findByIdAndUpdate(
+      req.member._id,
+      { privacy: { hidePhone: !!hidePhone, hideJob: !!hideJob, hideCity: !!hideCity, hideFromTree: !!hideFromTree } },
+      { new: true }
+    ).select('-otp');
+    res.json({ success: true, message: 'تم تحديث إعدادات الخصوصية', member });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'خطأ في الخادم' });
+  }
+};
