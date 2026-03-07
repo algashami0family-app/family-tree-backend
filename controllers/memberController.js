@@ -7,6 +7,7 @@ exports.getTree = async (req, res) => {
     const roots = await Member.find({
       generation: 1,
       accountStatus: 'active',
+      'privacy.hideFromTree': { $ne: true },
     }).select('memberId fullName gender generation children profilePicture job currentCity');
 
     // دالة بناء الشجرة بشكل متكرر
@@ -77,7 +78,6 @@ exports.addDescendant = async (req, res) => {
     if (dateOfBirth) newMember.dateOfBirth = new Date(dateOfBirth);
     if (currentCity) newMember.currentCity = currentCity.trim();
     if (job) newMember.job = job.trim();
-    if (hideFromTree) newMember.privacy = { ...newMember.privacy, hideFromTree: true };
     if (hideFromTree) newMember.privacy = { ...newMember.privacy, hideFromTree: true };
 
     await newMember.save();
@@ -259,7 +259,7 @@ exports.getMyDescendants = async (req, res) => {
     const member = req.member;
     // نجيب كل الأعضاء اللي lineage يحتوي على id العضو الحالي
     const descendants = await Member.find({
-      lineage: member._id,
+      lineage: { $in: [member._id] },
       accountStatus: { $ne: 'rejected' },
     }).select('fullName memberId gender generation currentCity job phoneNumber privacy accountStatus');
     res.json({ success: true, members: descendants });
