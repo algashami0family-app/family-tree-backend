@@ -179,6 +179,18 @@ exports.getMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'العضو غير موجود' });
     }
 
+    // تطبيق إعدادات الخصوصية إذا كان الطلب من شخص آخر
+    const isOwnProfile = req.member._id.toString() === member._id.toString();
+    const isAdmin = req.member.role === 'admin' || req.member.role === 'super_admin';
+    
+    if (!isOwnProfile && !isAdmin) {
+      const memberObj = member.toObject();
+      if (member.privacy?.hidePhone) delete memberObj.phoneNumber;
+      if (member.privacy?.hideJob) delete memberObj.job;
+      if (member.privacy?.hideCity) delete memberObj.currentCity;
+      return res.json({ success: true, member: memberObj });
+    }
+
     res.json({ success: true, member });
   } catch (error) {
     res.status(500).json({ success: false, message: 'خطأ في جلب البيانات' });
