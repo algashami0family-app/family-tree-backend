@@ -31,15 +31,30 @@ exports.sendOTP = async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 دقائق
 
     // تحديث أو إنشاء السجل
-    await Member.findOneAndUpdate(
-      { phoneNumber: formattedPhone },
-      {
+    let member = await Member.findOne({ phoneNumber: formattedPhone });
+    if (member) {
+      member.otp = { code: otp, expiresAt, verified: false };
+      await member.save();
+    } else {
+      // توليد memberId يدوياً لأن pre-save لا يعمل مع upsert
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let newId;
+      let exists = true;
+      while (exists) {
+        newId = 'FM-';
+        for (let i = 0; i < 6; i++) newId += chars.charAt(Math.floor(Math.random() * chars.length));
+        exists = await Member.findOne({ memberId: newId });
+      }
+      member = new Member({
+        memberId: newId,
         phoneNumber: formattedPhone,
+        fullName: 'مؤقت',
+        gender: 'male',
+        status: 'pending',
         otp: { code: otp, expiresAt, verified: false },
-        $setOnInsert: { fullName: 'مؤقت', gender: 'male' },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+      });
+      await member.save();
+    }
 
     // إرسال الرمز
     const result = await sendOTP(formattedPhone, otp);
