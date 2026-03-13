@@ -19,7 +19,7 @@ exports.getTree = async (req, res) => {
       }).select('memberId fullName gender generation children profilePicture job currentCity _id');
 
       const enrichedChildren = await Promise.all(
-        children.map(child => buildTree(child, depth + 1, member.fullName))
+        children.map(child => buildTree(child, depth + 1, parentChain ? `${member.fullName} بن ${parentChain}` : member.fullName))
       );
 
       return {
