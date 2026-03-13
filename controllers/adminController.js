@@ -221,9 +221,46 @@ exports.getMembers = async (req, res) => {
   try {
     const Member = require('../models/Member');
     const members = await Member.find()
-      .select('fullName memberId phoneNumber gender accountStatus role generation privacy createdAt')
+      .select('fullName memberId phoneNumber gender accountStatus role generation privacy registrationMethod fatherId createdAt')
       .sort({ createdAt: -1 });
-    res.json({ success: true, members });
+
+    // نجيب أسماء الآباء والمضيفين
+    const memberIds = members.map(m => m._id);
+    const fatherIds = members.filter(m => m.fatherId).map(m => m.fatherId);
+    const fathers = await Member.find({ _id: { $in: fatherIds } }).select('_id fullName memberId');
+    const fatherMap = {};
+    fathers.forEach(f => { fatherMap[f._id.toString()] = f.fullName; });
+
+    // نجيب معلومات الزوجات
+    const Spouse = require('../models/Spouse');
+    const spouseObjectIds = members.filter(m => m.registrationMethod === 'added_by_spouse').map(m => m._id);
+    const spouseLinks = await Spouse.find({ $or: [{ member1Id: { $in: spouseObjectIds } }, { member2Id: { $in: spouseObjectIds } }] });
+
+    const allSpouseMemberIds = [...new Set(spouseLinks.flatMap(s => [s.member1Id?.toString(), s.member2Id?.toString()]).filter(Boolean))];
+    const spouseMembers2 = await Member.find({ _id: { $in: allSpouseMemberIds } }).select('_id fullName');
+    const memberNameMap = {};
+    spouseMembers2.forEach(m => { memberNameMap[m._id.toString()] = m.fullName; });
+
+    const spouseMap = {};
+    spouseLinks.forEach(s => {
+      const m1 = s.member1Id?.toString();
+      const m2 = s.member2Id?.toString();
+      if (m1 && m2) {
+        spouseMap[m1] = memberNameMap[m2] || '';
+        spouseMap[m2] = memberNameMap[m1] || '';
+      }
+    });
+
+    const result = members.map(m => {
+      const obj = m.toObject();
+      if (m.fatherId) obj.fatherName = fatherMap[m.fatherId.toString()] || '';
+      if (m.registrationMethod === 'added_by_spouse') {
+        obj.spouseOfName = spouseMap[m._id.toString()] || '';
+      }
+      return obj;
+    });
+
+    res.json({ success: true, members: result });
   } catch (error) {
     res.status(500).json({ success: false, message: 'خطأ في جلب الأعضاء' });
   }

@@ -11,6 +11,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const spouseRoutes = require('./routes/spouseRoutes');
 const familyTreeRoutes = require('./routes/familyTreeRoutes');
+const biographyRoutes = require('./routes/biographyRoutes');
 const treePdfRoutes = require('./routes/treePdf');
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/spouses', spouseRoutes);
 app.use('/api/family-tree', familyTreeRoutes);
+app.use('/api/biographies', biographyRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

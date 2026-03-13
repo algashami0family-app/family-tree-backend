@@ -5,7 +5,7 @@ const Member = require('../models/Member');
 exports.addSpouse = async (req, res) => {
   try {
     const { member2Id, weddingDate, divorceDate, notes } = req.body;
-    const member1Id = req.user.memberId;
+    const member1Id = req.member._id;
 
     // تحقق من وجود الطرفين
     const [member1, member2] = await Promise.all([
@@ -42,8 +42,12 @@ exports.getSpouses = async (req, res) => {
   try {
     const { memberId } = req.params;
 
+    // نبحث بـ FM-xxx أو بـ ObjectId
+    const member = await Member.findOne({ memberId: memberId });
+    if (!member) return res.json({ success: true, spouses: [] });
+
     const spouses = await Spouse.find({
-      $or: [{ member1Id: memberId }, { member2Id: memberId }]
+      $or: [{ member1Id: member._id }, { member2Id: member._id }]
     }).populate('member1Id member2Id', 'fullName memberId gender currentCity profilePhoto');
 
     res.json({ success: true, spouses });
@@ -68,6 +72,7 @@ exports.addNewSpouse = async (req, res) => {
   try {
     const { spouseName, spousePhone, weddingDate, notes } = req.body;
     if (!spouseName) return res.status(400).json({ success: false, message: 'اسم الزوجة مطلوب' });
+    if (!spousePhone) return res.status(400).json({ success: false, message: 'رقم الجوال مطلوب' });
 
     const member1 = req.member;
 
@@ -75,14 +80,14 @@ exports.addNewSpouse = async (req, res) => {
     const newSpouse = new Member({
       fullName: spouseName.trim(),
       gender: 'female',
-      phoneNumber: spousePhone || `SPOUSE-${Date.now()}`,
+      phoneNumber: spousePhone.trim(),
       generation: member1.generation,
       accountStatus: 'active',
       registrationMethod: 'added_by_spouse',
       canAddDescendants: false,
       privacy: {
         hideFromTree: true,
-        hidePhone: true,
+        hidePhone: false,
       },
     });
 
@@ -107,46 +112,3 @@ exports.addNewSpouse = async (req, res) => {
   }
 };
 
-// إضافة زوجة جديدة مع إنشاء حساب تلقائي
-exports.addNewSpouse = async (req, res) => {
-  try {
-    const { spouseName, spousePhone, weddingDate, notes } = req.body;
-    if (!spouseName) return res.status(400).json({ success: false, message: 'اسم الزوجة مطلوب' });
-
-    const member1 = req.member;
-
-    // إنشاء حساب للزوجة
-    const newSpouse = new Member({
-      fullName: spouseName.trim(),
-      gender: 'female',
-      phoneNumber: spousePhone || `SPOUSE-${Date.now()}`,
-      generation: member1.generation,
-      accountStatus: 'active',
-      registrationMethod: 'added_by_spouse',
-      canAddDescendants: false,
-      privacy: {
-        hideFromTree: true,
-        hidePhone: true,
-      },
-    });
-
-    await newSpouse.save();
-
-    // إنشاء علاقة الزواج
-    const [id1, id2] = [member1._id.toString(), newSpouse._id.toString()].sort();
-    await Spouse.create({
-      member1Id: id1,
-      member2Id: id2,
-      weddingDate: weddingDate || undefined,
-      notes: notes || undefined,
-    });
-
-    res.json({
-      success: true,
-      message: 'تم إنشاء حساب الزوجة بنجاح',
-      memberId: newSpouse.memberId,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};

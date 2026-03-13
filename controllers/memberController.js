@@ -11,7 +11,7 @@ exports.getTree = async (req, res) => {
     }).select('memberId fullName gender generation children profilePicture job currentCity');
 
     // دالة بناء الشجرة بشكل متكرر
-    const buildTree = async (member, depth = 0) => {
+    const buildTree = async (member, depth = 0, parentChain = null) => {
       if (depth > 6) return member; // حد أقصى للعمق
       const children = await Member.find({
         fatherId: member._id,
@@ -19,13 +19,14 @@ exports.getTree = async (req, res) => {
       }).select('memberId fullName gender generation children profilePicture job currentCity _id');
 
       const enrichedChildren = await Promise.all(
-        children.map(child => buildTree(child, depth + 1))
+        children.map(child => buildTree(child, depth + 1, member.fullName))
       );
 
       return {
         id: member._id,
         memberId: member.memberId,
         fullName: member.fullName,
+        fullNameChain: parentChain ? `${member.fullName} بن ${parentChain}` : member.fullName,
         gender: member.gender,
         generation: member.generation,
         profilePicture: member.profilePicture,
@@ -110,11 +111,17 @@ exports.searchMembers = async (req, res) => {
     const query = { accountStatus: 'active' };
 
     if (q) {
+      // نقسم الاستعلام للبحث في أجزاء الاسم منفصلة
+      const nameParts = q.trim().split(/\s+(?:بن|بنت|bin|bint)?\s*/i).filter(Boolean);
+      const nameConditions = nameParts.map(part => ({
+        fullName: { $regex: part, $options: 'i' }
+      }));
       query.$or = [
         { fullName: { $regex: q, $options: 'i' } },
         { memberId: { $regex: q, $options: 'i' } },
         { currentCity: { $regex: q, $options: 'i' } },
         { job: { $regex: q, $options: 'i' } },
+        ...(nameConditions.length > 1 ? [{ $and: nameConditions }] : []),
       ];
     }
     if (generation) query.generation = Number(generation);
@@ -194,7 +201,22 @@ exports.getMember = async (req, res) => {
       return res.json({ success: true, member: memberObj });
     }
 
-    res.json({ success: true, member });
+    // بناء سلسلة الاسم الكامل
+    const memberObj = member.toObject();
+    let nameChain = memberObj.fullName;
+    if (memberObj.lineage && memberObj.lineage.length > 0) {
+      const ancestors = await Member.find({ _id: { $in: memberObj.lineage } })
+        .select('fullName _id').lean();
+      const orderedNames = memberObj.lineage
+        .map(id => ancestors.find(a => a._id.toString() === id.toString()))
+        .filter(Boolean).map(a => a.fullName);
+      if (orderedNames.length > 0) {
+        nameChain = memberObj.fullName + ' بن ' + orderedNames.reverse().join(' بن ');
+      }
+    }
+    memberObj.nameChain = nameChain;
+
+    res.json({ success: true, member: memberObj });
   } catch (error) {
     res.status(500).json({ success: false, message: 'خطأ في جلب البيانات' });
   }
@@ -203,12 +225,13 @@ exports.getMember = async (req, res) => {
 // ==================== إحصائيات الأعضاء ====================
 exports.getStats = async (req, res) => {
   try {
+    const noSpouse = { registrationMethod: { $ne: 'added_by_spouse' } };
     const [total, active, pending, byGeneration, byGender] = await Promise.all([
-      Member.countDocuments(),
-      Member.countDocuments({ accountStatus: 'active' }),
-      Member.countDocuments({ accountStatus: 'pending' }),
+      Member.countDocuments(noSpouse),
+      Member.countDocuments({ accountStatus: 'active', ...noSpouse }),
+      Member.countDocuments({ accountStatus: 'pending', ...noSpouse }),
       Member.aggregate([
-        { $match: { accountStatus: 'active' } },
+        { $match: { accountStatus: 'active', registrationMethod: { $ne: 'added_by_spouse' } } },
         { $group: { _id: '$generation', count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
