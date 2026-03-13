@@ -290,3 +290,50 @@ exports.getMyDescendants = async (req, res) => {
     res.status(500).json({ success: false, message: 'خطأ في جلب الذرية' });
   }
 };
+
+// ==================== تحديث الملف الشخصي ====================
+exports.updateProfile = async (req, res) => {
+  try {
+    const { fullName, currentCity, job, dateOfDeath, placeOfDeath } = req.body;
+    const updates = {};
+    if (fullName) updates.fullName = fullName.trim();
+    if (currentCity !== undefined) updates.currentCity = currentCity;
+    if (job !== undefined) updates.job = job;
+    if (dateOfDeath !== undefined) updates.dateOfDeath = dateOfDeath;
+    if (placeOfDeath !== undefined) updates.placeOfDeath = placeOfDeath;
+
+    const member = await Member.findByIdAndUpdate(
+      req.member._id,
+      { $set: updates },
+      { new: true }
+    );
+    res.json({ success: true, member });
+  } catch (error) {
+    console.error('updateProfile error:', error);
+    res.status(500).json({ success: false, message: 'خطأ في تحديث الملف' });
+  }
+};
+
+// ==================== رفع الصورة الشخصية ====================
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    const { photo } = req.body;
+    if (!photo) return res.status(400).json({ success: false, message: 'الصورة مطلوبة' });
+
+    const cloudinary = require('../utils/cloudinary');
+    const result = await cloudinary.uploader.upload(photo, {
+      folder: 'family-tree/profiles',
+      transformation: [{ width: 400, height: 400, crop: 'fill' }],
+    });
+
+    const member = await Member.findByIdAndUpdate(
+      req.member._id,
+      { $set: { profilePhoto: result.secure_url } },
+      { new: true }
+    );
+    res.json({ success: true, profilePhoto: result.secure_url, member });
+  } catch (error) {
+    console.error('uploadProfilePhoto error:', error);
+    res.status(500).json({ success: false, message: 'خطأ في رفع الصورة' });
+  }
+};
