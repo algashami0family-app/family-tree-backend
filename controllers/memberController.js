@@ -345,3 +345,92 @@ exports.uploadProfilePhoto = async (req, res) => {
     res.status(500).json({ success: false, message: 'خطأ في رفع الصورة' });
   }
 };
+
+// ==================== استيراد الأعضاء من Excel ====================
+exports.importMembers = async (req, res) => {
+  try {
+    const { members } = req.body;
+    if (!members || !Array.isArray(members)) {
+      return res.status(400).json({ success: false, message: 'البيانات مطلوبة' });
+    }
+
+    const results = { added: 0, skipped: 0, errors: [] };
+    const rowIdToMemberId = {}; // rowId -> MongoDB _id
+
+    // نرتب حسب fatherRowId - الجذور أولاً
+    const sorted = [...members].sort((a, b) => {
+      if (!a.fatherRowId) return -1;
+      if (!b.fatherRowId) return 1;
+      return Number(a.fatherRowId) - Number(b.fatherRowId);
+    });
+
+    for (const row of sorted) {
+      try {
+        const { rowId, fullName, gender, phoneNumber, fatherRowId, birthDate, deathDate, city, notes } = row;
+        if (!fullName || !gender) { results.skipped++; continue; }
+
+        // نجد الأب
+        let fatherId = null;
+        let fatherMemberId = null;
+        let generation = 1;
+        let lineage = [];
+
+        if (fatherRowId && rowIdToMemberId[fatherRowId]) {
+          const father = await Member.findById(rowIdToMemberId[fatherRowId]);
+          if (father) {
+            fatherId = father._id;
+            fatherMemberId = father.memberId;
+            generation = (father.generation || 1) + 1;
+            lineage = [...(father.lineage || []), father._id];
+          }
+        }
+
+        // توليد رقم جوال مؤقت إذا لم يكن موجوداً
+        const phone = phoneNumber || ('IMPORT-' + Date.now() + '-' + rowId);
+
+        // التحقق إذا موجود مسبقاً
+        const exists = await Member.findOne({ phoneNumber: phone });
+        if (exists) {
+          rowIdToMemberId[rowId] = exists._id;
+          results.skipped++;
+          continue;
+        }
+
+        const newMember = new Member({
+          fullName: fullName.trim(),
+          gender,
+          phoneNumber: phone,
+          fatherId,
+          fatherMemberId,
+          generation,
+          lineage,
+          accountStatus: 'active',
+          registrationMethod: 'imported',
+          canAddDescendants: true,
+        });
+
+        if (birthDate) newMember.dateOfBirth = birthDate;
+        if (deathDate) newMember.dateOfDeath = deathDate;
+        if (city) newMember.currentCity = city.trim();
+        if (gender === 'female') newMember.privacy = { hideFromTree: false };
+
+        await newMember.save();
+
+        // ربط بالأب
+        if (fatherId) {
+          await Member.findByIdAndUpdate(fatherId, { $addToSet: { children: newMember._id } });
+        }
+
+        rowIdToMemberId[rowId] = newMember._id;
+        results.added++;
+      } catch (err) {
+        results.errors.push({ rowId: row.rowId, error: err.message });
+      }
+    }
+
+    res.json({ success: true, message: 'تم الاستيراد', results });
+  } catch (error) {
+    console.error('importMembers error:', error);
+    res.status(500).json({ success: false, message: 'خطأ في الاستيراد' });
+  }
+};
