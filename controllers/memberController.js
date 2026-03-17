@@ -49,16 +49,24 @@ exports.getTree = async (req, res) => {
 // ==================== إضافة فرد من الذرية ====================
 exports.addDescendant = async (req, res) => {
   try {
-    const { fullName, gender, phoneNumber, dateOfBirth, currentCity, job, hideFromTree } = req.body;
+    const { fullName, gender, phoneNumber, dateOfBirth, currentCity, job, hideFromTree, fatherId, fatherMemberId } = req.body;
 
     if (!fullName || !gender) {
       return res.status(400).json({ success: false, message: 'الاسم والجنس مطلوبان' });
     }
 
-    const father = req.member;
+    // إذا أرسل الأدمن fatherId نستخدمه، وإلا نستخدم المستخدم الحالي
+    let father = req.member;
+    if (fatherId && (req.member.role === 'admin' || req.member.role === 'superadmin')) {
+      const selectedFather = await Member.findById(fatherId);
+      if (!selectedFather) {
+        return res.status(404).json({ success: false, message: 'الأب المحدد غير موجود' });
+      }
+      father = selectedFather;
+    }
 
     // تحقق من الصلاحية
-    if (!father.canAddDescendants && father.role !== 'admin') {
+    if (!father.canAddDescendants && req.member.role !== 'admin' && req.member.role !== 'superadmin') {
       return res.status(403).json({ success: false, message: 'لا تملك صلاحية إضافة أفراد' });
     }
 
