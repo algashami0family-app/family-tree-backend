@@ -405,7 +405,7 @@ exports.importMembers = async (req, res) => {
           generation,
           lineage,
           accountStatus: 'active',
-          registrationMethod: 'imported',
+          registrationMethod: 'added_by_admin',
           canAddDescendants: true,
         });
 
