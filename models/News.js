@@ -46,6 +46,15 @@ const newsSchema = new mongoose.Schema({
   eventLocation: {
     type: String,
   },
+  linkedMember: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Member',
+    default: null,
+  },
+  hijriDate: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
 newsSchema.index({ isPublished: 1, createdAt: -1 });

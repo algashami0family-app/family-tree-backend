@@ -123,7 +123,7 @@ exports.getNewsStats = async (req, res) => {
 // إضافة خبر جديد (أدمن فقط)
 exports.createNews = async (req, res) => {
   try {
-    const { title, content, type, isPinned, images, eventDate, eventLocation } = req.body;
+    const { title, content, type, isPinned, images, eventDate, eventLocation, linkedMember, hijriDate } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: 'العنوان والمحتوى مطلوبان' });
 
     let imageUrls = [];
@@ -143,10 +143,12 @@ exports.createNews = async (req, res) => {
       isPinned: isPinned || false,
       images: imageUrls,
       eventDate, eventLocation,
+      linkedMember: linkedMember || null,
+      hijriDate: hijriDate || null,
       author: req.member._id,
     });
 
-    const populated = await News.findById(news._id).populate('author', 'fullName memberId');
+    const populated = await News.findById(news._id).populate('author', 'fullName memberId').populate('linkedMember', 'fullName memberId generation');
     res.json({ success: true, news: populated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
