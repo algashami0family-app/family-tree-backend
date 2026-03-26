@@ -200,13 +200,27 @@ exports.getMember = async (req, res) => {
     const isOwnProfile = req.member._id.toString() === member._id.toString();
     const isAdmin = req.member.role === 'admin' || req.member.role === 'super_admin';
     
+    // بناء nameChain لكل المستخدمين
+    const memberObjBase = member.toObject();
+    let nameChainBase = memberObjBase.fullName;
+    if (memberObjBase.lineage && memberObjBase.lineage.length > 0) {
+      const ancestorsBase = await Member.find({ _id: { $in: memberObjBase.lineage } })
+        .select('fullName _id').lean();
+      const orderedNamesBase = memberObjBase.lineage
+        .map(id => ancestorsBase.find(a => a._id.toString() === id.toString()))
+        .filter(Boolean).map(a => a.fullName);
+      if (orderedNamesBase.length > 0) {
+        nameChainBase = memberObjBase.fullName + ' بن ' + orderedNamesBase.reverse().join(' بن ');
+      }
+    }
+    memberObjBase.nameChain = nameChainBase;
+
     if (!isOwnProfile && !isAdmin) {
-      const memberObj = member.toObject();
-      if (member.privacy?.hidePhone) delete memberObj.phoneNumber;
-      if (member.privacy?.hideJob) delete memberObj.job;
-      if (member.privacy?.hideCity) delete memberObj.currentCity;
-      if (member.privacy?.hideBirthDate) { delete memberObj.dateOfBirth; delete memberObj.placeOfBirth; }
-      return res.json({ success: true, member: memberObj });
+      if (member.privacy?.hidePhone) delete memberObjBase.phoneNumber;
+      if (member.privacy?.hideJob) delete memberObjBase.job;
+      if (member.privacy?.hideCity) delete memberObjBase.currentCity;
+      if (member.privacy?.hideBirthDate) { delete memberObjBase.dateOfBirth; delete memberObjBase.placeOfBirth; }
+      return res.json({ success: true, member: memberObjBase });
     }
 
     // بناء سلسلة الاسم الكامل
